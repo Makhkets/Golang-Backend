@@ -2,6 +2,7 @@ package user
 
 import (
 	"awesomeProject/internal/handlers"
+	"github.com/jmoiron/sqlx"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -16,10 +17,13 @@ const (
 )
 
 type handler struct {
+	db *sqlx.DB
 }
 
-func NewHandler() handlers.Handler {
-	return &handler{}
+func NewHandler(db *sqlx.DB) handlers.Handler {
+	return &handler{
+		db: db,
+	}
 }
 
 func (h *handler) Register(router *httprouter.Router) {

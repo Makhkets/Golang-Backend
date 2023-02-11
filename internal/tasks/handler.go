@@ -1,22 +1,26 @@
-package admin
+package tasks
 
 import (
 	"awesomeProject/internal/handlers"
 	"fmt"
+	"github.com/jmoiron/sqlx"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
 )
 
 const (
-	adminsURL string = "/admin"
-	adminURL         = "/admin/:uuid"
+	adminsURL string = "/tasks"
+	adminURL         = "/tasks/:uuid"
 )
 
 type handler struct {
+	db *sqlx.DB
 }
 
-func NewAdminHandler() handlers.Handler {
-	return &handler{}
+func NewAdminHandler(db *sqlx.DB) handlers.Handler {
+	return &handler{
+		db: db,
+	}
 }
 
 func (h *handler) Register(router *httprouter.Router) {
