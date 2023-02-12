@@ -1,6 +1,7 @@
 package main
 
 import (
+	"awesomeProject/cmd/main/config"
 	"awesomeProject/internal/tasks"
 	"awesomeProject/internal/user"
 	"database/sql"
@@ -12,63 +13,71 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/julienschmidt/httprouter"
 	_ "github.com/mattn/go-sqlite3"
+	"gopkg.in/go-playground/validator.v9"
 )
 
 func main() {
 	// connect to database
 	database := GetDatabase()
 
+	// validator
+	config.Validate = validator.New()
 	// create router
-	log.Println(green + "Create Router" + reset)
+	log.Println(config.Green + "Create Router" + config.Reset)
 	router := httprouter.New()
 
 	// create user handlers
-	log.Println(green + "Create User Handlers" + reset)
+	log.Println(config.Green + "Create User Handlers" + config.Reset)
 	userHandler := user.NewHandler(database)
 	userHandler.Register(router)
 
 	// create tasks handlers
-	log.Println(green + "Create Admin Handlers" + reset)
-	adminHandler := tasks.NewAdminHandler(database)
+	log.Println(config.Green + "Create Tasks Handlers" + config.Reset)
+	adminHandler := tasks.NewAdminHandler(database, config.Validate)
 	adminHandler.Register(router)
 
-	log.Println(blue + "~ Start server on port: http://localhost:8080/ ~" + reset)
+	log.Println(config.Blue + "~ Start server on port: http://localhost:8000/ ~" + config.Reset)
 	start(router)
 
 }
 
 func GetDatabase() *sqlx.DB {
-	db, err := sqlx.Open("sqlite3", "file:database.db?cache=shared&mode=rwc")
-	if err != nil {
-		log.Fatalln(err)
+	db, err1 := sqlx.Open("sqlite3", "file:database.db?cache=shared&mode=rwc")
+	if err1 != nil {
+		log.Fatalln(err1)
 	}
-	err = db.Ping()
-	if err != nil {
-		log.Fatalln(err)
+	err1 = db.Ping()
+	if err1 != nil {
+		log.Fatalln(err1)
 	}
 
-	// check tables or create
+	var err error
 	var tableExists bool
-	err = db.QueryRow("SELECT * FROM users").Scan(&tableExists)
-	if err != nil && err != sql.ErrNoRows {
-		log.Println(yellow + "The table does not exist" + reset)
-		log.Println(cyan + "Creating tables for database..." + reset)
+	err = db.QueryRow("SELECT name FROM sqlite_master WHERE type='table' AND name='tasks'").Scan(&tableExists)
+	if err == sql.ErrNoRows {
+		log.Println(config.Yellow + "The table does not exist" + config.Reset)
+		log.Println(config.Cyan + "Creating tables for database..." + config.Reset)
 
-		for _, value := range Scheme {
-			db.MustExec(value)
+		for _, value := range config.Scheme {
+			_, err := db.Exec(value)
+			if err != nil {
+				return db
+			}
 		}
 
-		log.Printf(green + "Creating Tables!" + reset)
+		log.Printf(config.Green + "Creating Tables!" + config.Reset)
+	} else if err != nil {
+		return db
 	} else {
-		log.Println(green + "Database is ok" + reset)
+		log.Println(config.Green + "Table exists" + config.Reset)
 	}
-	log.Println(green + "Check the Database Done!" + reset)
+	log.Println(config.Green + "Checking tables in database Done!" + config.Reset)
 
 	return db
 }
 
 func start(router *httprouter.Router) {
-	listener, err := net.Listen("tcp", ":"+Port)
+	listener, err := net.Listen("tcp", ":"+config.Port)
 	if err != nil {
 		log.Fatal(err)
 	}
